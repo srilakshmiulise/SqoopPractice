@@ -1,0 +1,102 @@
+create table sample_emp(id varchar(20),name varchar(0));
+
+insert into table sample_emp(id,name) values(10,"sri");
+(20,"lakshmi")
+(30,"dvs")
+(40,"tech")
+(50,"milind"); 
+sqoop import --connect jdbc:mysql://localhost:3306/sqoop_test
+--username hadoop --password Hadoop@123 --table sample_emp 
+-e,--query:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password 
+Hadoop@123 --query 'select id,ename from sample_emp where id < 30 and "$CONDITIONS"' --split-by id 
+--target-dir /user/hadoop/Practice/input3
+
+--append
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id --append
+
+split-by
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id
+
+--delete-target-dir
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id --delete-target-dir --target-dir /user/hadoop/Practice/input3
+
+boundary-query:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id --boundary-query "select min(id),max(id) from sample_emp" --delete-target-dir --target-dir /user/hadoop/Practice/input3
+[hadoop@localhost ~]$ hadoop fs -ls /user/hadoop/Practice/input3
+Found 5 items
+-rw-r--r--   1 hadoop supergroup          0 2020-03-15 21:34 /user/hadoop/Practice/input3/_SUCCESS
+-rw-r--r--   1 hadoop supergroup         11 2020-03-15 21:34 /user/hadoop/Practice/input3/part-m-00000
+-rw-r--r--   1 hadoop supergroup          7 2020-03-15 21:34 /user/hadoop/Practice/input3/part-m-00001
+-rw-r--r--   1 hadoop supergroup          7 2020-03-15 21:34 /user/hadoop/Practice/input3/part-m-00002
+-rw-r--r--   1 hadoop supergroup         18 2020-03-15 21:34 /user/hadoop/Practice/input3/part-m-00003
+
+
+-m,--num-mappers:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id --boundary-query "select min(id),max(id) from sample_emp" --delete-target-dir --target-dir /user/hadoop/Practice/input3 -m 2
+hadoop@localhost ~]$ hadoop fs -ls /user/hadoop/Practice/input3
+Found 3 items
+-rw-r--r--   1 hadoop supergroup          0 2020-03-15 21:38 /user/hadoop/Practice/input3/_SUCCESS
+-rw-r--r--   1 hadoop supergroup         18 2020-03-15 21:38 /user/hadoop/Practice/input3/part-m-00000
+-rw-r--r--   1 hadoop supergroup         25 2020-03-15 21:38 /user/hadoop/Practice/input3/part-m-00001
+
+--null-string:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --split-by id --boundary-query "select min(id),max(id) from sample_emp" --delete-target-dir --target-dir /user/hadoop/Practice/input3 -m 1 --null-string '\\N'
+[hadoop@localhost ~]$ hadoop fs -cat /user/hadoop/Practice/input3/part-m-0000*
+lakshmi,10
+sri,20
+dvs,30
+tech,40
+milind,50
+\N,60
+
+increament:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp  --incremental append --check-column id --last-value 30  --target-dir /user/hadoop/Practice/input3 -m 1 
+
+hadoop fs -cat /user/hadoop/Practice/input3/part-m-00001
+tech,40
+milind,50
+null,60
+
+Incremental Imports using Last-Modified mode:-
+
+hive:-
+sqoop-import --connect jdbc:mysql://localhost:3306/sqoop_test --username hadoop --password Hadoop@123 --table sample_emp --hive-import --create-hive-table --hive-database test_db --hive-table emp123 --delete-target-dir --target-dir /user/hadoop/Practice/input4 -m 1 
+dbc:hive2://localhost:10000/default> select * from emp123;
++---------------+------------+
+| emp123.ename  | emp123.id  |
++---------------+------------+
+| lakshmi       | 10         |
+| sri           | 20         |
+| dvs           | 30         |
+| tech          | 40         |
+| milind        | 50         |
+| null          | NULL       |
+| null          | 60         |
++---------------+------------+
+
+Q)we can mention string column in split by:-
+
+A)hadoop@localhost ~]$ sqoop-import --connect jdbc:mysql://localhost:3306/employees --username hadoop --password Hadoop@123 --table departments --split-by dept_name --delete-target-dir --target-dir /user/hadoop/Practice/input3 -m 1
+
+[hadoop@localhost ~]$ hadoop fs -ls /user/hadoop/Practice/input3
+Found 2 items
+-rw-r--r--   1 hadoop supergroup          0 2020-03-20 18:58 /user/hadoop/Practice/input3/_SUCCESS
+-rw-r--r--   1 hadoop supergroup        153 2020-03-20 18:58 /user/hadoop/Practice/input3/part-m-00000
+
+[hadoop@localhost ~]$ hadoop fs -cat /user/hadoop/Practice/input3/part-m-00000
+Customer Service,d009
+Development,d005
+Finance,d002
+Human Resources,d003
+Marketing,d001
+Production,d004
+Quality Management,d006
+Research,d008
+Sales,d007
+
+Q)why we give primary key split by key in sqoop
+A) to generate boundary query we have to give primary column if not we can mention split by column also
+
+
+
