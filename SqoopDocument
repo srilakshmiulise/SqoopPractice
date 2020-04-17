@@ -1,3 +1,6 @@
+Sqoop Commands:
+---------------
+
 create table sample_emp(id varchar(20),name varchar(0));
 
 insert into table sample_emp(id,name) values(10,"sri");
